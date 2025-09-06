@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="UTF-8">
+<title>Multilayer capacitor calculator</title>
+<style>
+@font-face { font-family: "MyLocalFont"; src: url("https://raw.githubusercontent.com/Xname41/Multilingual-calculator-for-calculating-an-asymmetric-capacitor-bg_en_he_ru/main/Vida41Pro 02.ttf") format("truetype"); }
+@font-face { font-family: "MyNumericFont"; src: url("https://raw.githubusercontent.com/Xname41/Multilingual-calculator-for-calculating-an-asymmetric-capacitor-bg_en_he_ru/main/HP-15C_Simulator_Font.ttf") format("truetype"); }
+
+html, body { margin:0; padding:0; height:100%; width:100%; font-family:"MyLocalFont", sans-serif; background-color:#f0f0f0; }
+body { display:flex; justify-content:center; align-items:flex-start; padding:20px; box-sizing:border-box; }
+
+#calculator { max-width:1200px; width:100%; transform-origin:top center; background:#fff; padding:20px; border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,0.2); }
+
+h2 { margin-top:30px; }
+.row { display:grid; grid-template-columns:300px 1fr; gap:10px; margin:6px 0; }
+input[type="number"] { font-family:"MyNumericFont", monospace; font-size:15px; width:100%; box-sizing:border-box; padding:6px; }
+select, button { font-family:"MyLocalFont", sans-serif; font-size:15px; width:100%; box-sizing:border-box; padding:6px; }
+button { margin-top:10px; }
+#btnAddLayer, #btnCalc { background-color: #007BFF; color:#fff; border:none; cursor:pointer; }
+#btnAddLayer:hover, #btnCalc:hover { background-color:#0056b3; }
+.layer { border:1px solid #ccc; border-radius:5px; padding:10px; margin-bottom:10px; background:#f9f9f9; }
+.layer b { display:block; margin-bottom:5px; }
+#result { margin-top:16px; font-weight:600; }
+
+/* Скролираща зона за слоевете */
+#layers {
+    max-height: 400px;   /* фиксирана височина на контейнера */
+    overflow-y: auto;    /* вертикален скрол при повече слоеве */
+    padding-right: 10px; /* място за скролбара */
+}
+
+/* Специални стилове за резултата */
+.result-number { font-family: "MyNumericFont"; }
+.result-text { font-family: "MyLocalFont"; }
+
+/* Скалиране на малки екрани */
+@media(max-width:600px){ .row{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+
+<div id="calculator">
+<h2>Multilayer capacitor calculator</h2>
+
+<div id="layers"></div>
+
+<div class="row">
+    <button id="btnAddLayer" onclick="addLayer()">Adding a layer</button>
+    <button id="btnCalc" onclick="calculate()">Calculate C_eq [pF]</button>
+</div>
+
+<div id="result"><span class="result-number">0</span> <span class="result-text">pF</span></div>
+</div>
+
+<script>
+let layerCount = 0;
+let layers = [];
+
+function addLayer(internalId=null){
+    if(internalId===null){
+        layerCount++;
+        internalId = layerCount;
+    }
+    if(layers.some(l=>l.internalId===internalId)) return;
+    layers.push({internalId:internalId,N:1,C0:1});
+    renderLayers();
+}
+
+function removeLayer(button, internalId){
+    layers = layers.filter(l=>l.internalId!==internalId);
+    renderLayers();
+}
+
+function renderLayers(){
+    const layersDiv = document.getElementById('layers');
+    layersDiv.innerHTML="";
+    layers.forEach((layer,index)=>{
+        const div=document.createElement('div');
+        div.className="layer";
+        div.innerHTML=`
+            <b>Layer ${index+1}:</b>
+            <div class="row">
+                <label>number of capacitors N:</label>
+                <input type="number" class="N" value="${layer.N}" min="1">
+            </div>
+            <div class="row">
+                <label>capacitance of a one capacitor C0 [pF]:</label>
+                <input type="number" class="C0" value="${layer.C0}" step="0.01" min="0.01">
+            </div>
+            <div class="row">
+                <button onclick="removeLayer(this,${layer.internalId})">Remove layer</button>
+            </div>
+        `;
+        layersDiv.appendChild(div);
+
+        const nInput = div.querySelector('.N');
+        const c0Input = div.querySelector('.C0');
+        nInput.addEventListener('input',()=>{layer.N=parseFloat(nInput.value)});
+        c0Input.addEventListener('input',()=>{layer.C0=parseFloat(c0Input.value)});
+    });
+}
+
+function calculate(){
+    let sumInverse = 0;
+    layers.forEach(layer=>{
+        const C_layer = layer.N * layer.C0;
+        sumInverse += 1/C_layer;
+    });
+    const C_eq = sumInverse>0?1/sumInverse:0;
+
+    document.getElementById('result').innerHTML =
+        `<span class="result-number">${C_eq.toFixed(3)}</span> <span class="result-text">pF</span>`;
+}
+
+// --- Fullscreen ---
+document.addEventListener('keydown',function(e){
+    if(e.key==='F'||e.key==='f'){if(!document.fullscreenElement)document.documentElement.requestFullscreen();}
+    else if(e.key==='Escape'){if(document.fullscreenElement)document.exitFullscreen();}
+});
+
+// Създаваме първи слой по подразбиране
+addLayer();
+</script>
+
+</body>
+</html>
